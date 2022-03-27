@@ -1,4 +1,4 @@
 import db, {pg} from "../db";
-import DummyService from "./DummyService";
+import Payme from "./PayMeService";
 
-export const Dummy = new DummyService({db, pg})
+export const Dummy = new Payme({db, pg})
