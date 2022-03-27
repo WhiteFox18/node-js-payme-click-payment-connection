@@ -27,6 +27,13 @@ const PayMeErrors = {
       message: "Irrelevant transaction status",
     },
   }),
+  cannotBeCancelled: (payment_id: number | string) => ({
+    id: payment_id,
+    error: {
+      code: -31007,
+      message: "The order has been completed. It is not possible to cancel the transaction.",
+    },
+  }),
 };
 
 export default PayMeErrors;
