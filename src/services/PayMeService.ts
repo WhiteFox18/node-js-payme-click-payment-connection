@@ -1,7 +1,7 @@
-import { Database, DatabaseClient, ServiceProps } from "../types";
+import { DatabaseClient, ServiceProps } from "../types";
 import PayMeErrors from "../modules/errors/PayMeErrors";
 import PayMeModel from "./models/PayMeModel";
-import db from "../db";
+import db, { ExtendedDatabase } from "../db";
 
 interface Account {
   service: any;
@@ -38,12 +38,12 @@ interface GetStatement {
 }
 
 export default class PayMeService {
-  private db: Database = null;
-  private pg: DatabaseClient = null;
+  private db: ExtendedDatabase = null;
+  private pgp: DatabaseClient = null;
 
   constructor(props: ServiceProps) {
     this.db = props.db;
-    this.pg = props.pg;
+    this.pgp = props.pgp;
   }
 
   checkPerformTransaction = async (params: CheckPerformTransaction) => {
