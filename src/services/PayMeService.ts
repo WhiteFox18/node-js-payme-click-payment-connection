@@ -2,6 +2,7 @@ import { DatabaseClient, ServiceProps } from "../types";
 import PayMeErrors from "../modules/errors/PayMeErrors";
 import PayMeModel from "./models/PayMeModel";
 import db, { ExtendedDatabase } from "../db";
+import { PaymentServices, PaymentStatuses } from "./types";
 
 interface Account {
   service: any;
@@ -66,9 +67,11 @@ export default class PayMeService {
 
       if (payment.amount != amount) {
         return PayMeErrors.invalidPaymentAmount(service);
+      } else if(payment.amount != amount) {
+        return PayMeModel.checkPerformTransactionReturnObject();
+      } else {
+        return PayMeErrors.transactionDoesNotExist(service);
       }
-
-      return PayMeModel.checkPerformTransactionReturnObject();
     } catch (e) {
       throw e;
     }
@@ -95,7 +98,7 @@ export default class PayMeService {
           AND (id = $1 OR payment_sys_id = $2)
       `, [service, id]);
 
-      if (payment.payment_status_id == 2 || payment.timely_status === "expired") {
+      if (!payment || payment.payment_status_id == PaymentStatuses.performed || payment.timely_status === "expired") {
         return PayMeErrors.irrelevantPayment(id);
       }
 
@@ -145,7 +148,7 @@ export default class PayMeService {
         return PayMeErrors.transactionDoesNotExist(id);
       }
 
-      if (payment.payment_status_id == 1 && payment.timely_status === "pending") {
+      if (payment.payment_status_id == PaymentStatuses.created && payment.timely_status === "pending") {
         const result = await this.db.one(`
           UPDATE payments
           SET payment_status_id = 2,
@@ -159,13 +162,13 @@ export default class PayMeService {
           id: id,
           perform_time: result.perform_time,
         });
-      } else if (payment.payment_status_id == 2) {
+      } else if (payment.payment_status_id == PaymentStatuses.performed) {
         return PayMeModel.performTransactionReturnObject({
           id: id,
           perform_time: payment.perform_time,
         });
       } else {
-        if (payment.payment_status_id != 3) {
+        if (payment.payment_status_id != PaymentStatuses.canceled) {
           const result = await PayMeModel.cancelTransaction(id);
 
           return PayMeModel.cancelTransactionReturnObject({
@@ -245,7 +248,11 @@ export default class PayMeService {
           AND payment_sys_id = $1
       `, [id]);
 
-      if (payment.payment_status_id == 2) {
+      if(!payment) {
+        return PayMeErrors.transactionDoesNotExist(id)
+      }
+
+      if (payment.payment_status_id == PaymentStatuses.performed) {
         return {
           result: {
             create_time: parseInt(payment.created_at),
@@ -256,7 +263,7 @@ export default class PayMeService {
             reason: null,
           },
         };
-      } else if (payment.timely_status === "pending" && payment.payment_status_id == 1) {
+      } else if (payment.timely_status === "pending" && payment.payment_status_id == PaymentStatuses.created) {
         return {
           result: {
             create_time: parseInt(payment.created_at),
